@@ -31,6 +31,16 @@ string currentTimestamp() {
     return output.str();
 }
 
+struct Transaction {
+    string type;
+    double amount;
+    string timestamp;
+
+    //Auto add a timestamp
+    Transaction(const string& transactionType, double transactionAmount)
+        : type(transactionType), amount(transactionAmount), timestamp(currentTimestamp()) {}
+};
+
 class BankAccount {
 private:
     // Ordinary strings manage their own memory
