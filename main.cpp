@@ -211,7 +211,7 @@ int getInteger(const string& prompt) {
     }
 }
 
-// Input helper keeps asking until a valid non-negative amount is entered
+// Input helper keeps asking until a valid non negative amount is entered
 double getAmount(const string& prompt) {
     double amount;
     while (true) {
@@ -240,162 +240,104 @@ void displayAccounts(const vector<BankAccount*>& accounts) {
 
 
 int main() {
-    // The vector stores base-class pointers to both account types
-    vector<BankAccount*> accounts;
-    int choice = 0;
+    // CHANGED: The menu now includes transaction-history access for either derived account type
+    vector<BankAccount*> accounts; // stores checking and savings accounts
+    bool running = true;
 
-    do {
-        cout << "\n===== Bank Account Management System =====\n";
-        cout << "1. Create Checking Account\n";
-        cout << "2. Create Savings Account\n";
-        cout << "3. Display Accounts\n";
-        cout << "4. Deposit\n";
-        cout << "5. Withdraw\n";
-        cout << "6. Change Account Holder Name\n";
-        cout << "7. Calculate Savings Interest\n";
-        cout << "8. Compare Accounts\n";
-        cout << "9. Exit\n";
-        cout << "Enter your choice: ";
+    while (running) {
+        cout << "\n===== Composition Lab: Bank Accounts =====\n"
+             << "1. Create Checking Account\n"
+             << "2. Create Savings Account\n"
+             << "3. Display All Accounts\n"
+             << "4. Deposit\n"
+             << "5. Withdraw\n"
+             // NEW MENU OPTION: View the selected account's transaction records
+             << "6. Print Transaction History\n"
+             << "7. Calculate Savings Interest\n"
+             << "8. Change Account Holder Name\n"
+             << "9. Compare Two Accounts\n"
+             << "10. Exit\n";
+        int choice = getInteger("Choose an option: ");
 
-        choice = getInteger();
-
-        if (choice == 1) {
-            // Read common account information, then ask for the checking-only fee
-            string number;
-            string name;
-            double initialBalance;
-            double fee;
-
-            readAccountDetails(number, name, initialBalance);
-            fee = getNonNegativeAmount("Enter transaction fee: $");
-
-            accounts.push_back(
-                new CheckingAccount(number, name, initialBalance, fee)
-            );
-            cout << "Checking account created successfully.\n";
-        }
-        else if (choice == 2) {
-            // Read common account information, then ask for the savings interest rate
-            string number;
-            string name;
-            double initialBalance;
-            double rate;
-
-            readAccountDetails(number, name, initialBalance);
-            rate = getNonNegativeAmount(
-                "Enter interest rate as a decimal (0.05 means 5%): "
-            );
-
-            accounts.push_back(
-                new SavingsAccount(number, name, initialBalance, rate)
-            );
-            cout << "Savings account created successfully.\n";
-        }
-        else if (choice == 3) {
+        if (choice == 1 || choice == 2) {
+            int number = getInteger("Enter account number: ");
+            string name = getName("Enter account holder name: ");
+            double startingBalance = getAmount("Enter starting balance: $");
+            if (choice == 1) {
+                double fee = getAmount("Enter checking transaction fee: $");
+                accounts.push_back(new CheckingAccount(number, name, startingBalance, fee));
+                cout << "Checking account created.\n";
+            } else {
+                double rate = getAmount("Enter savings interest rate (e.g. 0.05 for 5%): ");
+                accounts.push_back(new SavingsAccount(number, name, startingBalance, rate));
+                cout << "Savings account created.\n";
+            }
+        } else if (choice == 3) {
             displayAccounts(accounts);
-        }
-        else if (choice == 4 || choice == 5 || choice == 6 || choice == 7) {
+        } else if (choice >= 4 && choice <= 8) {
             if (accounts.empty()) {
-                cout << "No accounts available.\n";
+                cout << "Create an account first.\n";
                 continue;
             }
-
-            displayAccounts(accounts);
-            cout << "\nEnter account number (1-"
-                 << accounts.size() << "): ";
-            int index = getInteger();
-
-            if (index < 1 || index > static_cast<int>(accounts.size())) {
-                cout << "Invalid account number.\n";
+            for (size_t i = 0; i < accounts.size(); ++i) {
+                cout << i + 1 << ". ";
+                accounts[i]->print();
+            }
+            int selected = getInteger("Select account number from this list: ");
+            if (selected < 1 || selected > static_cast<int>(accounts.size())) {
+                cout << "Invalid selection.\n";
                 continue;
             }
-
-            BankAccount* account = accounts[index - 1];
-
+            BankAccount* account = accounts[selected - 1];
             if (choice == 4) {
-                // The overloaded += operator handles deposits for either account type
-                double amount = getPositiveAmount("Enter deposit amount: $");
-                *account += amount;
-            }
-            else if (choice == 5) {
-                double amount = getPositiveAmount("Enter withdrawal amount: $");
-
-                // Polymorphism: the correct withdraw() runs for the actual account type
+                double amount = getAmount("Deposit amount: $");
+                account->deposit(amount);
+            } else if (choice == 5) {
+                double amount = getAmount("Withdrawal amount: $");
+                // CHANGED: Virtual dispatch calls CheckingAccount::withdraw when appropriate
                 account->withdraw(amount);
-            }
-            else if (choice == 6) {
-                string newName;
-                cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                cout << "Enter new account holder name: ";
-                getline(cin, newName);
-
+            } else if (choice == 6) {
+                // NEW: This works for both CheckingAccount and SavingsAccount through BankAccount
+                account->printHistory();
+            } else if (choice == 7) {
+                SavingsAccount* savings = dynamic_cast<SavingsAccount*>(account);
+                if (savings) savings->calculateInterest();
+                else cout << "Interest can only be calculated for a savings account.\n";
+            } else if (choice == 8) {
+                string newName = getName("Enter new account holder name: ");
                 account->setAccountHolderName(newName);
                 cout << "Account holder name updated.\n";
             }
-            else if (choice == 7) {
-                // dynamic_cast checks whether the selected base pointer is a savings account.
-                SavingsAccount* savings = dynamic_cast<SavingsAccount*>(account);
-if (savings != nullptr) {
-                    savings->calculateInterest();
-                }
-                else {
-                    cout << "Interest can only be calculated for a savings account.\n";
-                }
-            }
-        }
-        else if (choice == 8) {
-            // Keep the same account comparison from last
+        } else if (choice == 9) {
             if (accounts.size() < 2) {
-                cout << "You need at least two accounts to compare.\n";
+                cout << "Create at least two accounts to compare them.\n";
                 continue;
             }
-
-            displayAccounts(accounts);
-            cout << "\nEnter first account number: ";
-            int first = getInteger();
-            cout << "Enter second account number: ";
-            int second = getInteger();
-
-            if (first < 1 || first > static_cast<int>(accounts.size()) ||
-                second < 1 || second > static_cast<int>(accounts.size())) {
-                cout << "Invalid account number.\n";
+            for (size_t i = 0; i < accounts.size(); ++i) {
+                cout << i + 1 << ". ";
+                accounts[i]->print();
+            }
+            int first = getInteger("Select the first account: ");
+            int second = getInteger("Select the second account: ");
+            if (first < 1 || second < 1 || first > static_cast<int>(accounts.size()) ||
+                second > static_cast<int>(accounts.size())) {
+                cout << "Invalid selection.\n";
                 continue;
             }
-
-            BankAccount& account1 = *accounts[first - 1];
-            BankAccount& account2 = *accounts[second - 1];
-
-            if (account1 == account2) {
-                cout << "The accounts have the same account number.\n";
-            }
-            else {
-                cout << "The accounts have different account numbers.\n";
-            }
-
-            if (account1 < account2) {
-                cout << "The first account has a lower balance.\n";
-            }
-            else if (account1 > account2) {
-                cout << "The first account has a higher balance.\n";
-            }
-            else {
-                cout << "The accounts have the same balance.\n";
-            }
+            BankAccount& a = *accounts[first - 1];
+            BankAccount& b = *accounts[second - 1];
+            if (a == b) cout << "The accounts have equal balances.\n";
+            else if (a > b) cout << "The first account has the larger balance.\n";
+            else cout << "The second account has the larger balance.\n";
+        } else if (choice == 10) {
+            running = false;
+        } else {
+            cout << "Invalid menu option.\n";
         }
-        else if (choice == 9) {
-            cout << "Thank you for using the Bank Account Management System.\n";
-        }
-        else {
-            cout << "Invalid choice. Please select 1-9.\n";
-        }
-
-    } while (choice != 9);
-
-    // The virtual destructor makes deleting derived objects through base pointers safe.
-    for (BankAccount* account : accounts) {
-        delete account;
     }
-    accounts.clear();
 
+    // Delete each dynamically allocated account before the program exits
+    for (BankAccount* account : accounts) delete account;
+    cout << "Goodbye!\n";
     return 0;
 }
