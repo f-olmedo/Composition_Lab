@@ -43,98 +43,97 @@ struct Transaction {
 
 class BankAccount {
 private:
-    // Ordinary strings manage their own memory
-    string accountNumber;
+    int accountNumber;
     string accountHolderName;
+    // NEW FOR COMPOSITION LAB: Composition - each BankAccount owns a vector of Transaction objects.
+    vector<Transaction> transactionHistory;
 
 protected:
-    // Protected lets derived account classes update the balance directly
     double balance;
 
+    // NEW: Derived classes can log transactions without directly accessing the private vector.
+    void recordTransaction(const string& type, double amount) {
+        transactionHistory.emplace_back(type, amount);
+    }
+
 public:
-    // Initialize the base account fields using a member initializer list
-    BankAccount() : accountNumber("Unknown"),
-                    accountHolderName("Unknown"),
-                    balance(0.0) {
-    }
+    BankAccount() : accountNumber(0), accountHolderName("Unknown"), balance(0.0) {}
 
-    // Derived constructors call this constructor to set the shared account detail
-    BankAccount(const string& number, const string& name, double initialBalance)
-        : accountNumber(number),
-          accountHolderName(name),
-          balance(initialBalance) {
-    }
+    BankAccount(int number, const string& name, double startingBalance)
+        : accountNumber(number), accountHolderName(name), balance(startingBalance) {}
 
-    // Virtual destructor allows derived objects to be deleted through base pointers
     virtual ~BankAccount() = default;
 
-    string getAccountNumber() const {
-        return accountNumber;
+    int getAccountNumber() const { return accountNumber; }
+    string getAccountHolderName() const { return accountHolderName; }
+    double getBalance() const { return balance; }
+
+    void setAccountHolderName(const string& name) { accountHolderName = name; }
+
+    // CHANGED: Record a deposit only after the balance has been updated successfully
+    virtual void deposit(double amount) {
+        if (amount <= 0) {
+            cout << "Deposit amount must be greater than zero.\n";
+            return;
+        }
+        balance += amount;
+        // NEW: Save the deposit details and timestamp in this account's history
+        transactionHistory.emplace_back("Deposit", amount);
+        cout << "Deposit successful.\n";
     }
 
-    string getAccountHolderName() const {
-        return accountHolderName;
+    // CHANGED: Keep withdrawal virtual so CheckingAccount can apply its fee and log its own withdrawal
+    virtual void withdraw(double amount) {
+        if (amount <= 0) {
+            cout << "Withdrawal amount must be greater than zero.\n";
+            return;
+        }
+        if (amount > balance) {
+            cout << "Insufficient funds.\n";
+            return;
+        }
+        balance -= amount;
+        // NEW: Save the successful withdrawal in this account's history
+        transactionHistory.emplace_back("Withdrawal", amount);
+        cout << "Withdrawal successful.\n";
     }
 
-    double getBalance() const {
-        return balance;
+    // NEW: Display every transaction stored for this account
+    void printHistory() const {
+        cout << "\nTransaction History for " << accountHolderName
+             << " (Account #" << accountNumber << ")\n";
+        cout << left << setw(24) << "Date and Time" << setw(24) << "Type" << "Amount\n";
+        cout << string(58, '-') << '\n';
+        if (transactionHistory.empty()) {
+            cout << "No transactions recorded.\n";
+            return;
+        }
+        for (const Transaction& transaction : transactionHistory) {
+            cout << left << setw(24) << transaction.timestamp
+                 << setw(24) << transaction.type
+                 << '$' << fixed << setprecision(2) << transaction.amount << '\n';
+        }
     }
 
-    void setAccountHolderName(const string& name) {
-        accountHolderName = name;
+    virtual void print() const {
+        cout << "Account Number: " << accountNumber
+             << " | Holder: " << accountHolderName
+             << " | Balance: $" << fixed << setprecision(2) << balance << '\n';
     }
 
     BankAccount& operator+=(double amount) {
-        if (amount > 0) {
-            balance += amount;
-            cout << "Deposit successful.\n";
-        }
-        else {
-            cout << "Deposit amount must be greater than 0.\n";
-        }
-
+        deposit(amount);
         return *this;
     }
 
-    // Virtual so the correct withdrawal rule is used
-    virtual void withdraw(double amount) {
-        if (amount <= 0) {
-            cout << "Withdrawal amount must be greater than 0.\n";
-        }
-        else if (amount > balance) {
-            cout << "Insufficient funds.\n";
-        }
-        else {
-            balance -= amount;
-            cout << "Withdrawal successful.\n";
-        }
-    }
-
-    // Route -= through the virtual function
     BankAccount& operator-=(double amount) {
         withdraw(amount);
         return *this;
     }
 
-    bool operator==(const BankAccount& other) const {
-        return accountNumber == other.accountNumber;
-    }
-
-    bool operator<(const BankAccount& other) const {
-        return balance < other.balance;
-    }
-
-    bool operator>(const BankAccount& other) const {
-        return balance > other.balance;
-    }
-
-    virtual void print() const {
-        cout << fixed << setprecision(2);
-        cout << "Account Type: Bank Account\n";
-        cout << "Account Number: " << accountNumber << '\n';
-        cout << "Account Holder: " << accountHolderName << '\n';
-        cout << "Balance: $" << balance << '\n';
-    }
+    bool operator==(const BankAccount& other) const { return balance == other.balance; }
+    bool operator<(const BankAccount& other) const { return balance < other.balance; }
+    bool operator>(const BankAccount& other) const { return balance > other.balance; }
 };
 
 // Public inheritance gives checking accounts the common BankAccount interface
