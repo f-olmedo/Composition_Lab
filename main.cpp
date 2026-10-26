@@ -10,8 +10,26 @@ Purpose:  Using updated UML diagram as a guide, implement the transaction histor
 #include <string>
 #include <limits>
 #include <iomanip>
+//support transaction timestamps
+#include <ctime>
+#include <sstream>
 
 using namespace std;
+
+
+// NEW: Returns the current date and time
+string currentTimestamp() {
+    time_t now = time(nullptr);
+    tm localTime{};
+#ifdef _WIN32
+    localtime_s(&localTime, &now);
+#else
+    localtime_r(&now, &localTime);
+#endif
+    ostringstream output;
+    output << put_time(&localTime, "%Y-%m-%d %H:%M:%S");
+    return output.str();
+}
 
 class BankAccount {
 private:
