@@ -142,39 +142,31 @@ private:
     double transactionFee;
 
 public:
-    // Build the shared account fields first, then store the checking transaction fee
-    CheckingAccount(const string& number, const string& name,
-                    double initialBalance, double fee)
-        : BankAccount(number, name, initialBalance),
-          transactionFee(fee) {
-    }
+    CheckingAccount(int number, const string& name, double startingBalance, double fee)
+        : BankAccount(number, name, startingBalance), transactionFee(fee) {}
 
-    // Override the base withdrawal to deduct the withdrawal amount plus its fee
+    // CHANGED: The checking withdrawal subtracts the fee and logs the total amount removed.
     void withdraw(double amount) override {
         if (amount <= 0) {
-            cout << "Withdrawal amount must be greater than 0.\n";
+            cout << "Withdrawal amount must be greater than zero.\n";
+            return;
         }
-        else if (transactionFee < 0) {
-            cout << "Transaction fee cannot be negative.\n";
-        }
-        else if (amount + transactionFee > getBalance()) {
+        double total = amount + transactionFee;
+        if (total > balance) {
             cout << "Insufficient funds to cover the withdrawal and transaction fee.\n";
+            return;
         }
-        else {
-            balance -= amount + transactionFee;
-            cout << "Checking withdrawal successful. Transaction fee: $"
-                 << fixed << setprecision(2) << transactionFee << '\n';
-        }
+        balance -= total;
+        // NEW: Use the protected helper so the checking withdrawal is included in the history.
+        recordTransaction("Withdrawal (fee included)", total);
+        cout << "Checking withdrawal successful. Fee: $" << fixed << setprecision(2)
+             << transactionFee << '\n';
     }
 
-    // Override print so checking account details include the transaction fee
     void print() const override {
-        cout << fixed << setprecision(2);
-        cout << "Account Type: Checking Account\n";
-        cout << "Account Number: " << getAccountNumber() << '\n';
-        cout << "Account Holder: " << getAccountHolderName() << '\n';
-        cout << "Balance: $" << getBalance() << '\n';
-        cout << "Transaction Fee: $" << transactionFee << '\n';
+        BankAccount::print();
+        cout << "Account Type: Checking | Transaction Fee: $"
+             << fixed << setprecision(2) << transactionFee << '\n';
     }
 };
 
