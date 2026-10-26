@@ -176,36 +176,26 @@ private:
     double interestRate;
 
 public:
-    // Enter the interest rate as a decimal
-    SavingsAccount(const string& number, const string& name,
-                   double initialBalance, double rate)
-        : BankAccount(number, name, initialBalance),
-          interestRate(rate) {
-    }
+    SavingsAccount(int number, const string& name, double startingBalance, double rate)
+        : BankAccount(number, name, startingBalance), interestRate(rate) {}
 
-    // Calculate simple interest from the current balance and add it to the balance
+    // Existing savings feature retained; NEW: interest is also recorded in transaction history.
     void calculateInterest() {
-        if (interestRate < 0) {
-            cout << "Interest rate cannot be negative.\n";
+        double interest = balance * interestRate;
+        if (interest <= 0) {
+            cout << "No interest to add.\n";
             return;
         }
-
-        double interest = balance * interestRate;
         balance += interest;
-
-        cout << fixed << setprecision(2);
-        cout << "Interest added: $" << interest << '\n';
-        cout << "New balance: $" << balance << '\n';
+        // NEW: Store interest as a transaction too, so the history reflects this balance change.
+        recordTransaction("Interest", interest);
+        cout << "Interest added: $" << fixed << setprecision(2) << interest << '\n';
     }
 
-    // Override print to show the savings account's interest rate
     void print() const override {
-        cout << fixed << setprecision(2);
-        cout << "Account Type: Savings Account\n";
-        cout << "Account Number: " << getAccountNumber() << '\n';
-        cout << "Account Holder: " << getAccountHolderName() << '\n';
-        cout << "Balance: $" << getBalance() << '\n';
-        cout << "Interest Rate: " << interestRate * 100 << "%\n";
+        BankAccount::print();
+        cout << "Account Type: Savings | Interest Rate: "
+             << fixed << setprecision(2) << interestRate * 100 << "%\n";
     }
 };
 
