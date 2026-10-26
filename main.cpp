@@ -199,66 +199,45 @@ public:
     }
 };
 
-int getInteger() {
+// Input helper keeps asking until an integer is entered
+int getInteger(const string& prompt) {
     int value;
-
-    while (!(cin >> value)) {
-        cout << "Invalid input. Please enter a number: ";
+    while (true) {
+        cout << prompt;
+        if (cin >> value) return value;
+        cout << "Invalid input. Please enter a whole number.\n";
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
-
-    return value;
 }
 
-double getNonNegativeAmount(const string& prompt) {
+// Input helper keeps asking until a valid non-negative amount is entered
+double getAmount(const string& prompt) {
     double amount;
-
-    cout << prompt;
-    while (!(cin >> amount) || amount < 0) {
-        cout << "Invalid amount. Enter a non-negative value: ";
+    while (true) {
+        cout << prompt;
+        if (cin >> amount && amount >= 0) return amount;
+        cout << "Invalid amount. Enter a number that is zero or greater.\n";
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
-
-    return amount;
 }
 
-double getPositiveAmount(const string& prompt) {
-    double amount;
-
+string getName(const string& prompt) {
+    string name;
     cout << prompt;
-    while (!(cin >> amount) || amount <= 0) {
-        cout << "Invalid amount. Enter a value greater than 0: ";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    }
-
-    return amount;
-}
-
-void readAccountDetails(string& number, string& name, double& balance) {
-    cout << "Enter account number: ";
-    cin >> number;
-
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    cout << "Enter account holder name: ";
-    getline(cin, name);
-
-    balance = getNonNegativeAmount("Enter initial balance: $");
+    getline(cin >> ws, name);
+    return name;
 }
 
 void displayAccounts(const vector<BankAccount*>& accounts) {
     if (accounts.empty()) {
-        cout << "No accounts available.\n";
+        cout << "No accounts have been created.\n";
         return;
     }
-
-    for (size_t i = 0; i < accounts.size(); ++i) {
-        cout << "\nAccount " << i + 1 << '\n';
-        accounts[i]->print();
-    }
+    for (const BankAccount* account : accounts) account->print();
 }
+
 
 int main() {
     // The vector stores base-class pointers to both account types
